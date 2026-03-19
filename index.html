@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Merge Chef Restaurant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="game-container">
+
+    <!-- Title Screen — covers everything on first load; tap anywhere to enter game -->
+    <div id="title-screen"></div>
+
+    <!-- Header: Level (left) | Mission Targets (center) | Moves (right) -->
+    <div class="header-ui">
+        <div class="header-inner">
+            <div class="header-col-level">
+                <span id="level-title">1</span>
+            </div>
+            <div class="header-col-missions">
+                <div id="mission-targets" class="mission-list"></div>
+            </div>
+            <div class="header-col-moves">
+                <span id="moves-count">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Board area -->
+    <div class="flex-grow flex items-center justify-center relative"
+         id="board-container">
+        <div id="board-wrapper" class="relative w-full flex items-center justify-center">
+            <!--
+                Decorative frame (Board.png 9-slice) — BEFORE #board in DOM
+                so it renders behind the tile grid naturally (no z-index needed).
+                fill keyword draws the Board.png center as the board background.
+            -->
+            <div id="board-frame" aria-hidden="true"></div>
+            <!-- Tile grid: position:relative so SVG & blocks inside share its origin -->
+            <div id="board" class="grid-board">
+                <svg id="svg-lines" class="line-connector"></svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Guide text (bottom bar) -->
+    <div class="guide-bar">
+        <span id="guide-text">로딩 중...</span>
+    </div>
+
+    <!-- Overlay (win / lose / level-start) — hidden by default; JS controls display -->
+    <div id="game-overlay" class="overlay" style="display:none">
+        <h1 id="overlay-title" class="text-5xl mb-6 font-bold">Chef Restaurant</h1>
+        <p  id="overlay-msg"   class="text-2xl px-10 mb-6 leading-relaxed"></p>
+        <!-- window.handleOverlayBtn is set by Game constructor -->
+        <button id="overlay-btn" class="btn-main" onclick="handleOverlayBtn()">시작하기</button>
+    </div>
+
+</div>
+
+<!--
+    Scripts loaded in dependency order (no ES modules — works with file:// directly).
+    All classes are exposed via the window.MC namespace.
+-->
+<script src="js/data.js"></script>
+<script src="js/Board.js"></script>
+<script src="js/Renderer.js"></script>
+<script src="js/Input.js"></script>
+<script src="js/Game.js"></script>
+<script src="js/main.js"></script>
+
+</body>
+</html>

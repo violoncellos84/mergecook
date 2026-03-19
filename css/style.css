@@ -1,0 +1,777 @@
+/* ===== Custom Fonts ===== */
+@font-face {
+    font-family: 'PokopangOTF';
+    src: url('../assets/font/PokopangOTFRegular.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'PoetsenOne';
+    src: url('../assets/font/PoetsenOne-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* ===== CSS Custom Properties =====
+   All layout values are computed by Renderer.adjustSize() using
+   scale = containerWidth / 1080  (reference design: 1080 × 1920 px).
+   Fallback defaults below approximate a 500 px wide container (scale ≈ 0.463).
+*/
+:root {
+    --board-border: 40px;
+
+    /* Ingame_top.png  1060×317  ref (10, 40) */
+    --header-left: 4.6px;
+    --header-top: 18.5px;
+    --header-w: 490.7px;
+    --header-h: 146.7px;
+    --header-num-size: 18.5px;
+
+    /* Ingame_bottom.png  980×338  ref (50, 1560) */
+    --guide-left: 23.1px;
+    --guide-top: 721.7px;
+    --guide-w: 453.4px;
+    --guide-h: 156.4px;
+    --guide-font-size: 16.7px;
+
+    /* Board area: ref y 357 – 1560 */
+    --board-top: 165.2px;
+    --board-h: 556.6px;
+
+    /* Mission icons: block source 128×128 px × scale */
+    --mission-icon-px: 59.3px;
+
+    /* Header level / moves number stroke ── thickness만 여기서 조절 */
+    --num-stroke-w: 8px;
+    /* 두껍게 = 값 ↑ / 얇게 = 값 ↓ */
+}
+
+/* ===== Base ===== */
+body {
+    background-color: #1a1a2e;
+    color: #4a3728;
+    font-family: 'PokopangOTF', sans-serif;
+    overflow: hidden;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* ===== Game Container =====
+   Acts as the positioned root for all absolutely-placed children.
+*/
+.game-container {
+    width: 100vw;
+    height: 100vh;
+    max-width: 500px;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+
+    /* In-game kitchen background */
+    background: url('../assets/items/Ingame_bg.png') center / cover no-repeat;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.25);
+}
+
+/* ===== Title Screen ===== */
+#title-screen {
+    position: absolute;
+    inset: 0;
+    z-index: 9999;
+    background: url('../assets/items/Title_bg.png') center / cover no-repeat;
+    cursor: pointer;
+    transition: opacity 0.35s ease;
+}
+
+#title-screen.fading {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ===== Header (Ingame_top.png) =====
+   Absolutely positioned at reference coordinates × scale.
+   Image is displayed at its natural proportions — no stretching distortion.
+*/
+.header-ui {
+    position: absolute;
+    left: var(--header-left);
+    top: var(--header-top);
+    width: var(--header-w);
+    height: var(--header-h);
+    background: url('../assets/items/Ingame_top.png') 0 0 / 100% 100% no-repeat;
+    z-index: 20;
+}
+
+/* Three-column flex row spanning the full header image */
+.header-inner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+}
+
+/* Left column — aligns with the "Level" zone (~18 % of image width) */
+.header-col-level {
+    width: 30%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'PoetsenOne', sans-serif;
+    font-size: var(--header-num-size);
+    color: white;
+    -webkit-text-stroke: var(--num-stroke-w) #ac5225;
+    paint-order: stroke fill;
+    /* stroke는 글자 뒤에 — 흰색 속이 깨끗하게 유지됨 */
+    line-height: 1;
+    padding-top: 10%;
+}
+
+/* Right column — aligns with the "Moves" zone (~18 % of image width) */
+.header-col-moves {
+    width: 30%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'PoetsenOne', sans-serif;
+    font-size: var(--header-num-size);
+    color: white;
+    -webkit-text-stroke: var(--num-stroke-w) #ac5225;
+    paint-order: stroke fill;
+    line-height: 1;
+    padding-top: 10%;
+}
+
+/* Center column — cream "Target" box (~64 % of image width) */
+.header-col-missions {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    /* Push below the "Target" badge tab at the top of the image */
+    padding-top: 5%;
+    /* overflow visible so absolutely-positioned count labels are not clipped */
+    overflow: visible;
+}
+
+/* Mission icon list inside the center box */
+.mission-list {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: nowrap;
+    /* overflow visible so count badges overlapping icon edges are not clipped */
+    overflow: visible;
+    max-width: 100%;
+}
+
+/* ===== Board Area =====
+   Occupies the space between the header bottom and guide top.
+   Calculated in JS: top = (40+317)×scale, height = (1560−357)×scale.
+*/
+#board-container {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: var(--board-top);
+    height: var(--board-h);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ===== Board (9-slice frame) =====
+   Board.png corners: CORNER_SRC=105 / LAND_SRC=138 = K_FRAME ≈ 0.7609.
+   Frame is on a SEPARATE sibling (#board-frame) so getBoundingClientRect()
+   on #board returns only content dimensions for pixel-perfect block positioning.
+*/
+.grid-board {
+    display: grid;
+    gap: 2px;
+    padding: 0;
+    position: relative;
+    background: transparent;
+}
+
+#board-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    box-sizing: content-box;
+    /* No z-index: frame stays behind tiles via DOM order (frame appears before
+       #board in HTML). The JS sizes the frame element smaller than the board by
+       2×frameOverlap so the CSS border extends INTO the tile area — tiles cover
+       the inner overlap portion and the outer decorative border remains visible
+       with reduced whitespace margin. */
+
+    border: var(--board-border) solid transparent;
+    border-image-source: url('../assets/tiles/Board.png');
+    border-image-slice: 105 fill;
+    border-image-width: var(--board-border);
+    border-image-outset: 0;
+    border-image-repeat: stretch;
+}
+
+/* ===== Tiles ===== */
+.tile {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-size: 100% 100%;
+    background-color: transparent;
+    overflow: hidden;
+}
+
+.tile.box-gimmick {
+    background-image: none !important;
+    background-color: transparent;
+    z-index: 10;
+}
+
+/* Box transform animation (Gimmick_01 → Gimmick_01_b) */
+.box-transforming {
+    animation: box-transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes box-transform {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.5); }
+    100% { transform: scale(1); }
+}
+
+.tile.mixer-gimmick {
+    background-image: none !important;
+    background-color: transparent;
+    overflow: visible;
+    z-index: 3;
+}
+
+.tile.mixer-bot-gimmick {
+    background-image: none !important;
+    background-color: transparent;
+}
+
+/* ===== Block Items (game pieces) ===== */
+.block-item {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* top: ease-out-sine — starts fast, decelerates smoothly, no overshoot */
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+        filter 0.3s ease,
+        top 0.35s cubic-bezier(0.61, 1, 0.88, 1),
+        left 0.28s ease-out,
+        opacity 0.2s ease;
+    z-index: 2;
+    pointer-events: none;
+    aspect-ratio: 1 / 1;
+}
+
+.block-item.selected {
+    transform: scale(1.35);
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.9));
+    z-index: 50;
+}
+
+/* ===== Flying Block (collects to mission icon) ===== */
+.block-fly {
+    position: absolute;
+    pointer-events: none;
+    z-index: 8000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: left 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+        top 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.55s ease-in,
+        opacity 0.45s ease-in;
+}
+
+/* ===== Particle Effects ===== */
+.particle-fx {
+    position: absolute;
+    pointer-events: none;
+    z-index: 9000;
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    animation: fx-burst 0.65s ease-out forwards;
+}
+
+@keyframes fx-burst {
+    0% {
+        transform: translate(0, 0) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(var(--pdx), var(--pdy)) scale(0) rotate(var(--prot));
+        opacity: 0;
+    }
+}
+
+/* ===== Item Icons ===== */
+.item-emoji {
+    display: block;
+    transform: scale(2.4);
+    filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.4));
+    line-height: 1;
+    pointer-events: none;
+}
+
+.item-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.45));
+    display: block;
+    pointer-events: none;
+}
+
+/* ===== SVG Connector Line ===== */
+.line-connector {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 40;
+    stroke: #ffffff;
+    stroke-width: 12;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.9;
+    filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.4));
+    overflow: visible;
+}
+
+/* ===== Mission Panel (inside header center box) ===== */
+.mission-panel {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+/* Icon wrapper: displayed at natural image size × scale (128px × scale) */
+.mission-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--mission-icon-px);
+    height: var(--mission-icon-px);
+    flex-shrink: 0;
+}
+
+.mission-icon-wrap .item-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+}
+
+.mission-icon-wrap .item-emoji {
+    /* emoji fallback: scale to fit the icon box */
+    font-size: calc(var(--mission-icon-px) * 0.55);
+    transform: none;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+    line-height: 1;
+}
+
+/* Remaining count — overlaps bottom-right corner of mission icon */
+.mission-count {
+    position: absolute;
+    bottom: -3px;
+    right: -5px;
+    font-family: 'PoetsenOne', sans-serif;
+    font-size: calc(var(--mission-icon-px) * 0.52);
+    color: #924408;
+    -webkit-text-stroke: 3px white;
+    paint-order: stroke fill;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+    font-weight: bold;
+    line-height: 1;
+    z-index: 1;
+}
+
+/* ===== Guide Bar (Ingame_bottom.png) =====
+   Absolutely positioned at reference coordinates × scale.
+   Image displayed at its natural proportions — no distortion.
+*/
+.guide-bar {
+    position: absolute;
+    left: var(--guide-left);
+    top: var(--guide-top);
+    width: var(--guide-w);
+    height: var(--guide-h);
+    background: url('../assets/items/Ingame_bottom.png') 0 0 / 100% 100% no-repeat;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Horizontal padding to keep text inside the inner beige area */
+    padding: 0 10%;
+    z-index: 10;
+}
+
+.guide-bar #guide-text {
+    font-family: 'PokopangOTF', sans-serif;
+    font-size: var(--guide-font-size);
+    color: #a07653;
+    text-align: center;
+    line-height: 1.5;
+    white-space: pre-line;
+}
+
+/* ===== Overlay ===== */
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.88);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    color: white;
+    text-align: center;
+    backdrop-filter: blur(4px);
+}
+
+/* ===== Buttons ===== */
+.btn-main {
+    background: #ff5722;
+    padding: 16px 50px;
+    border-radius: 50px;
+    font-size: 1.7rem;
+    margin-top: 25px;
+    box-shadow: 0 6px 0 #bf360c;
+    cursor: pointer;
+    border: none;
+    color: white;
+    font-family: 'PokopangOTF', sans-serif;
+}
+
+.btn-main:active {
+    transform: translateY(3px);
+    box-shadow: 0 3px 0 #bf360c;
+}
+
+/* ===== Stage Clear Presentation ===== */
+.clear-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 9000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    background: rgba(0, 0, 0, 0.8);
+}
+
+/* Ray — wrapper rotates, inner img scales in, screen blend for light effect */
+.clear-ray-wrap {
+    position: absolute;
+    width: 90%;
+    aspect-ratio: 1 / 1;
+    max-width: 500px;
+    animation: ray-spin 6s linear infinite;
+    mix-blend-mode: screen;
+}
+
+.clear-ray-wrap>img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transform: scale(0);
+    animation: scale-in 0.3s ease-out forwards;
+}
+
+/* Bloom / glow duplicate — blurred bright copy behind the main ray */
+.clear-ray-glow {
+    position: absolute;
+    inset: -15%;
+    width: 130% !important;
+    height: 130% !important;
+    object-fit: contain;
+    filter: brightness(2) blur(18px);
+    opacity: 0.6;
+    transform: scale(0);
+    animation: scale-in 0.3s ease-out forwards;
+}
+
+.clear-text {
+    position: relative;
+    width: 70%;
+    max-width: 400px;
+    z-index: 2;
+    transform: scale(0);
+    animation: pop-overshoot 0.5s ease-out 0.2s forwards;
+}
+
+.clear-btn {
+    position: relative;
+    width: 45%;
+    max-width: 250px;
+    margin-top: 4%;
+    z-index: 2;
+    transform: scale(0);
+    animation: pop-overshoot 0.5s ease-out 0.5s forwards;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.clear-btn:active {
+    opacity: 0.7;
+}
+
+@keyframes scale-in {
+    to {
+        transform: scale(1);
+    }
+}
+
+@keyframes ray-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes pop-overshoot {
+    0% {
+        transform: scale(0);
+    }
+
+    60% {
+        transform: scale(1.5);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Confetti burst — circular explosion */
+.confetti-burst {
+    position: absolute;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+    animation: cfx-burst 0.8s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+    animation-delay: var(--delay, 0ms);
+}
+
+@keyframes cfx-burst {
+    0% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(0.2);
+        opacity: 0;
+    }
+}
+
+/* Confetti fall — from top of screen, behind text/btn */
+.confetti-fall {
+    position: absolute;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+    animation: cfx-fall var(--dur) ease-in forwards;
+    animation-delay: var(--delay, 0ms);
+}
+
+@keyframes cfx-fall {
+    0% {
+        transform: translateY(0) rotate(0deg) translateX(0) scale(var(--scale, 1));
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(100vh) rotate(var(--rot)) translateX(var(--sway)) scale(var(--scale, 1));
+        opacity: 1;
+    }
+}
+
+/* ===== Merge Animation ===== */
+.merge-pop-block {
+    position: absolute;
+    pointer-events: none;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: merge-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.merge-pop-block > img {
+    width: 80%;
+    height: 80%;
+    object-fit: contain;
+}
+@keyframes merge-pop {
+    0%   { transform: scale(0); }
+    60%  { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+
+.merge-particle {
+    position: absolute;
+    pointer-events: none;
+    z-index: 60;
+    opacity: 0;
+    animation: merge-burst var(--dur) ease-out forwards;
+    animation-delay: var(--delay, 0ms);
+}
+@keyframes merge-burst {
+    0%   { transform: translate(-50%, -50%) translate(0, 0) rotate(0deg) scale(var(--s0, 1));
+           opacity: var(--a0, 1); }
+    100% { transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(0);
+           opacity: 0; }
+}
+
+.merge-expand {
+    position: absolute;
+    pointer-events: none;
+    z-index: 60;
+    opacity: 0;
+    animation: merge-ring var(--dur) ease-out forwards;
+    animation-delay: var(--delay, 0ms);
+}
+@keyframes merge-ring {
+    0%   { transform: translate(-50%, -50%) scale(var(--s0, 0.2)); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(var(--s1, 2.5)); opacity: 0; }
+}
+
+/* ===== Level Start Popup ===== */
+.level-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.level-overlay.level-dismissing {
+    animation: level-dim-out 0.4s ease-in forwards;
+}
+
+.level-popup-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    animation: level-drop-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.level-popup-container.level-dropping-out {
+    animation: level-drop-out 0.4s ease-in forwards;
+}
+
+.level-popup-wrap {
+    position: relative;
+    width: 100%;
+}
+
+.level-popup-img {
+    width: 100%;
+    display: block;
+}
+
+.level-popup-title {
+    position: absolute;
+    top: 7%;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: #fff;
+    font-family: 'PoetsenOne', sans-serif;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.level-info-img {
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+}
+
+.level-popup-desc {
+    position: absolute;
+    bottom: 20%;
+    left: 8%;
+    right: 8%;
+    text-align: center;
+    color: #a07653;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.level-btn {
+    width: 45vw;
+    max-width: 250px;
+    margin-top: 3%;
+    transform: scale(0);
+    animation: pop-overshoot 0.5s ease-out 0.5s forwards;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.level-btn:active {
+    opacity: 0.7;
+}
+
+@keyframes level-drop-in {
+    0% {
+        transform: translateY(-100vh);
+    }
+
+    100% {
+        transform: translateY(0);
+    }
+}
+
+@keyframes level-drop-out {
+    0% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(100vh);
+    }
+}
+
+@keyframes level-dim-out {
+    0% {
+        background: rgba(0, 0, 0, 0.8);
+    }
+
+    100% {
+        background: rgba(0, 0, 0, 0);
+    }
+}
+
+/* ===== Utilities ===== */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
