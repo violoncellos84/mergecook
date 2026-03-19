@@ -56,16 +56,23 @@ body {
     touch-action: none;
     -webkit-user-select: none;
     user-select: none;
+
+    /* 9:16 컨테이너를 화면 중앙에 배치 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
 }
 
 /* ===== Game Container =====
-   Acts as the positioned root for all absolutely-placed children.
+   9:16 비율 고정: width = min(100vw, 100vh×9/16, 500px).
+   aspect-ratio가 height를 자동 결정하므로 Ingame_bottom이 항상 화면 안에 위치한다.
 */
 .game-container {
-    width: 100vw;
-    height: 100vh;
-    max-width: 500px;
-    margin: 0 auto;
+    /* 9:16 비율을 유지하면서 뷰포트와 500px 상한을 동시에 준수 */
+    width: min(100vw, calc(100vh * 9 / 16), 500px);
+    aspect-ratio: 9 / 16;
     position: relative;
     overflow: hidden;
 

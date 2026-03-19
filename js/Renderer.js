@@ -30,7 +30,7 @@ var MERGE_FX_CONFIG = [
         name:     'par01',
         type:     'burst',
         src:      'assets/fx/Par_01.png',
-        count:    55,
+        count:    22,
         spread:   [40, 120],
         scale:    [0.3, 1.0],
         duration: [400, 700],
@@ -43,7 +43,7 @@ var MERGE_FX_CONFIG = [
         name:     'par02',
         type:     'burst',
         src:      'assets/fx/Par_02.png',
-        count:    55,
+        count:    22,
         spread:   [30, 100],
         scale:    [0.3, 1.0],
         duration: [400, 700],
@@ -68,7 +68,7 @@ var MERGE_FX_CONFIG = [
         name:     'par04',
         type:     'burst',
         src:      'assets/fx/Par_04.png',
-        count:    30,
+        count:    12,
         spread:   [20, 90],
         scale:    [0.4, 1.0],
         duration: [500, 900],
@@ -92,6 +92,11 @@ class Renderer {
         this._selectedPath = [];
         this._flyingIds    = new Set();   // block IDs currently in fly animation
         this._mergeSpawn   = null;        // { id, row } — merged block spawn position
+
+        // Performance: cache block DOM elements by block ID to avoid querySelector in loop
+        this._blockEls = new Map();
+        // Performance: cache tile layout measurements; invalidated on resize
+        this._tileLayoutCache = null;
     }
 
     setSelectedPath(path) { this._selectedPath = path; }
@@ -134,6 +139,8 @@ class Renderer {
 
         // Remove old tiles and blocks; SVG element is preserved
         this.boardEl.querySelectorAll('.tile, .block-item').forEach(el => el.remove());
+        this._blockEls.clear();
+        this._tileLayoutCache = null;
 
         this.boardEl.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
         this.boardEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
@@ -192,14 +199,17 @@ class Renderer {
     }
 
     adjustSize() {
-        // ── Reference design: 1080 × 1920 px ─────────────────────────────────
-        // All UI positions and image sizes are specified in reference pixels.
-        // Displayed size = reference_px × scale, where scale = containerWidth / 1080.
-        // Images are rendered at their original aspect ratio — no distortion.
+        // ── Reference design: 1080 × 1920 px (9:16) ──────────────────────────
+        // Scale is the smaller of the two axis-based factors so all UI panels
+        // stay inside the container regardless of the actual aspect ratio.
 
         const gameContainer = document.querySelector('.game-container');
         const contW = gameContainer.clientWidth;
-        const scale = contW / 1080;
+        const contH = gameContainer.clientHeight;
+        const scale = Math.min(contW / 1080, contH / 1920);
+
+        // Invalidate cached tile layout whenever the container is resized.
+        this._tileLayoutCache = null;
 
         // Helper: set a CSS custom property to a pixel value.
         const css = (name, px) =>
@@ -306,6 +316,8 @@ class Renderer {
      * This accounts for padding and gap without relying on style parsing.
      */
     _getTileLayout() {
+        if (this._tileLayoutCache) return this._tileLayoutCache;
+
         const boardRect = this.boardEl.getBoundingClientRect();
         const tile0 = this.boardEl.querySelector('.tile[data-index="0"]');
         const tile1 = this.boardEl.querySelector(`.tile[data-index="1"]`);
@@ -325,7 +337,8 @@ class Renderer {
         const ox = t0.left - boardRect.left;
         const oy = t0.top - boardRect.top;
 
-        return { tileW, tileH, gapX, gapY, ox, oy };
+        this._tileLayoutCache = { tileW, tileH, gapX, gapY, ox, oy };
+        return this._tileLayoutCache;
     }
 
     // ── Per-frame rendering ──────────────────────────────────────────────────
@@ -340,16 +353,20 @@ class Renderer {
 
         const activeIds = new Set(this.board.data.filter(Boolean).map(d => d.id));
 
-        this.boardEl.querySelectorAll('.block-item').forEach(el => {
-            if (!activeIds.has(el.dataset.id)) el.remove();
-        });
+        // Remove stale block elements via cached Map (no querySelectorAll needed)
+        for (const [id, el] of this._blockEls) {
+            if (!activeIds.has(id)) {
+                el.remove();
+                this._blockEls.delete(id);
+            }
+        }
 
         const newBlocks = [];   // newly created elements to animate in
 
         this.board.data.forEach((data, i) => {
             if (!data) return;
 
-            let el = this.boardEl.querySelector(`.block-item[data-id="${data.id}"]`);
+            let el = this._blockEls.get(data.id);
             const isNew = !el;
 
             if (isNew) {
@@ -357,6 +374,7 @@ class Renderer {
                 el.className = 'block-item';
                 el.dataset.id = data.id;
                 this.boardEl.appendChild(el);
+                this._blockEls.set(data.id, el);
             }
 
             // Refresh icon only when type/level changed
@@ -512,7 +530,7 @@ class Renderer {
         const data = this.board.data[blockIdx];
         if (!data) { if (onComplete) onComplete(); return; }
 
-        const blockEl = this.boardEl.querySelector(`.block-item[data-id="${data.id}"]`);
+        const blockEl = this._blockEls.get(data.id);
         if (!blockEl) { if (onComplete) onComplete(); return; }
 
         // Hide original; mark as flying so renderBlocks keeps it hidden
@@ -623,7 +641,7 @@ class Renderer {
         var gcRect = gc.getBoundingClientRect();
 
         // Hide the dragged block element
-        var blockEl = this.boardEl.querySelector('.block-item[data-id="' + blockId + '"]');
+        var blockEl = this._blockEls.get(blockId);
         if (blockEl) blockEl.style.display = 'none';
 
         // Find the box tile and its image
@@ -728,7 +746,7 @@ class Renderer {
             var idx = pathIndices[i];
             var data = board.data[idx];
             if (!data) continue;
-            var el = boardEl.querySelector('.block-item[data-id="' + data.id + '"]');
+            var el = this._blockEls.get(data.id);
             if (!el) continue;
             blockEls.push({ idx: idx, el: el });
             if (idx === targetIdx) targetEl = el;

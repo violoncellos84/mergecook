@@ -13,9 +13,13 @@ class Input {
         this._handlers  = handlers;
         this._getConfig = getConfig;
         this._dragging  = false;
+        this._boardEl   = null;
+        this._boardRect = null;   // cached at drag start; cleared on drag end
     }
 
     attachTo(boardEl) {
+        this._boardEl = boardEl;
+
         boardEl.addEventListener('mousedown', e => this._start(e));
         window.addEventListener('mousemove',  e => this._move(e));
         window.addEventListener('mouseup',    ()  => this._end());
@@ -33,6 +37,8 @@ class Input {
 
     _start(e) {
         if (document.getElementById('game-overlay').style.display === 'flex') return;
+        // Refresh board rect once per drag gesture (not per-move)
+        this._boardRect = this._boardEl.getBoundingClientRect();
         const idx = this._pointerIndex(e);
         if (idx === -1) return;
         this._dragging = true;
@@ -48,14 +54,14 @@ class Input {
     _end() {
         if (!this._dragging) return;
         this._dragging = false;
+        this._boardRect = null;
         this._handlers.onEnd();
     }
 
     _pointerIndex(e) {
         const touch   = e.touches ? e.touches[0] : e;
         const config  = this._getConfig();
-        const boardEl = document.getElementById('board');
-        const rect    = boardEl.getBoundingClientRect();
+        const rect    = this._boardRect || this._boardEl.getBoundingClientRect();
 
         if (touch.clientX < rect.left || touch.clientX > rect.right ||
             touch.clientY < rect.top  || touch.clientY > rect.bottom) return -1;
