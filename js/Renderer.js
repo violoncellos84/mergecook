@@ -200,13 +200,13 @@ class Renderer {
 
     adjustSize() {
         // ── Reference design: 1080 × 1920 px (9:16) ──────────────────────────
-        // Scale is the smaller of the two axis-based factors so all UI panels
-        // stay inside the container regardless of the actual aspect ratio.
+        // CSS locks the container to 9:16 via explicit width+height min() rules,
+        // so scale = contW/1080 always keeps every panel inside the container.
+        // (Using clientHeight for scale caused a 0-value timing bug on Android WebView.)
 
         const gameContainer = document.querySelector('.game-container');
         const contW = gameContainer.clientWidth;
-        const contH = gameContainer.clientHeight;
-        const scale = Math.min(contW / 1080, contH / 1920);
+        const scale = contW / 1080;
 
         // Invalidate cached tile layout whenever the container is resized.
         this._tileLayoutCache = null;

@@ -66,13 +66,18 @@ body {
 }
 
 /* ===== Game Container =====
-   9:16 비율 고정: width = min(100vw, 100vh×9/16, 500px).
-   aspect-ratio가 height를 자동 결정하므로 Ingame_bottom이 항상 화면 안에 위치한다.
+   9:16 비율 고정: width 와 height 를 모두 명시적으로 설정한다.
+   aspect-ratio 대신 min() 조합으로 두 축을 직접 제어하므로
+   Android WebView 에서 clientHeight 가 0 을 반환하는 타이밍 이슈가 없다.
+
+   width  = min(100vw, 100vh × 9/16,       500px)
+   height = min(100vh, 100vw × 16/9, 500px × 16/9)
+
+   어느 화면 비율에서도 width:height = 9:16 이 보장된다.
 */
 .game-container {
-    /* 9:16 비율을 유지하면서 뷰포트와 500px 상한을 동시에 준수 */
-    width: min(100vw, calc(100vh * 9 / 16), 500px);
-    aspect-ratio: 9 / 16;
+    width:  min(100vw, calc(100vh * 9 / 16), 500px);
+    height: min(100vh, calc(100vw * 16 / 9), calc(500px * 16 / 9));
     position: relative;
     overflow: hidden;
 
